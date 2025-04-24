@@ -1,30 +1,37 @@
-import streamlit as st
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
-# Display text using different methods
-st.title("Streamlit Tutorial")
-st.write('Hello World')
+# Create an app
+app = FastAPI()
 
-# Input elements
-favorite_movie = st.text_input('Favorite Movie?')
-st.write(f"Your favorite movie is: {favorite_movie}")
+# Create a data storage
+items = []
 
-# Button example
-is_clicked = st.button("Click Me")
-if is_clicked:
-    st.write("Button was clicked!")
+# Define a model for our items
+class Item(BaseModel):
+    text: str
+    is_done: bool = False
 
-# Markdown formatting
-st.write("## This is a H2 Title!")
-st.markdown("*Streamlit* is **really** ***cool***.")
-st.markdown('''
-    :red[Streamlit] :orange[can] :green[write] :blue[text] :violet[in]
-    :gray[pretty] :rainbow[colors] and :blue-background[highlight] text.''')
-st.markdown("Here's a bouquet &mdash;\
-            :tulip::cherry_blossom::rose::hibiscus::sunflower::blossom:")
+# Define root endpoint
+@app.get("/")
+def root():
+    return {"Hello": "World"}
 
-multi = '''If you end a line with two spaces,
-a soft return is used for the next line.
+# Create a new item
+@app.post("/items")
+def create_item(item: Item):
+    items.append(item)
+    return item
 
-Two (or more) newline characters in a row will result in a hard return.
-'''
-st.markdown(multi)
+# Get a specific item by ID
+@app.get("/items/{item_id}", response_model=Item)
+def get_item(item_id: int) -> Item:
+    if item_id < len(items):
+        return items[item_id]
+    else:
+        raise HTTPException(status_code=404, detail=f"Item {item_id} not found")
+
+# List items with optional limit
+@app.get("/items/", response_model=list[Item])
+def list_items(limit: int = 10):
+    return items[0:limit]
